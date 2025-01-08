@@ -1,6 +1,4 @@
-import lz4.block
-import lz4.frame
-import sys, lzma, bz2, lz4, zstandard, zlib, struct
+import sys, lzma, bz2, lz4, zstandard, zlib, struct, lz4.frame
 
 def compressor(byteData:bytes, compression:int=0) -> bytes:
     if compression == 0:
@@ -142,13 +140,14 @@ def convertToBBM(input_file:str, output_file:str=None, compression:int=0):
 
     vertex_count = len(vertices)
     face_count = len(faces)
-    header = struct.pack("4sII", format_tag, vertex_count, face_count) + int.to_bytes(compression, 4, 'little')
-    vertex_data = b"".join([struct.pack("fff", *v) for v in vertices])
-    face_data = b"".join([struct.pack("III", *f) for f in faces])
+    vertex_data = compressor(b"".join([struct.pack("fff", *v) for v in vertices]), compression)
+    face_data = compressor(b"".join([struct.pack("III", *f) for f in faces]), compression)
+    vLen, fLen = len(vertex_data), len(face_data)
+    header = struct.pack("4sII", format_tag, vertex_count, face_count) + int.to_bytes(compression, 4, 'little') + int.to_bytes(vLen, 8, 'little') + int.to_bytes(fLen, 8, 'little')
     with open(output_file, "wb") as f:
         f.write(header)
-        f.write(compressor(vertex_data, compression))
-        f.write(compressor(face_data, compression))
+        f.write(vertex_data)
+        f.write(face_data)
 
 if __name__ == "__main__":
     try:convertToBBM(str(sys.argv[1]), str(sys.argv[2]), int(sys.argv[3]))
