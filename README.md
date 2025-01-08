@@ -1,5 +1,6 @@
 # BBM
 - Better Binary Model (BBM) is a 3D Model Format for E.S. and Microcontrollers with very small file-sizes.
+- It's also quite versitile, allowing for easy OBJ/PLY conversions.
 
 ## Compiling Models:
 - You can compile your model into the format by using the following command:
