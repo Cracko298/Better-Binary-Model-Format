@@ -13,3 +13,8 @@ py main.py [inputObjPlyFile] [outputFile] [compressionMode]
                                             4 = ZLib
                                             5 = LZMA
 ```
+## Rendering Model:
+- You can render your compiled model by using command:
+```
+py renderer.py [inputBbmFile]
+```
