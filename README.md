@@ -14,8 +14,9 @@ py main.py [inputObjPlyFile] [outputBbmFile] [compressionMode]
                                                 4 = ZLib
                                                 5 = LZMA
 ```
-- Without compression Models are almost always less than 18-19% of the og model file-size `(415kb -> 75kb)`.
-- With compression it gets even better with nearly 4-6% of the og model file-size `(415kb -> 18kb)`.
+- Without compression Models are almost always less than 18-19% of the og model file-size `(415kb -> ~75kb)`.
+- With compression it gets even better with nearly 4-6% of the og model file-size `(415kb -> ~18kb)`.
+- Please remember while these sizes are possible, they showcase the best case-senario.
 
 ## Rendering Model:
 - You can render your compiled model by using command:
