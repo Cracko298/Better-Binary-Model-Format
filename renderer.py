@@ -17,7 +17,7 @@ def decompressor(data:bytes, compression_flag:int=0) -> bytes:
     elif compression_flag == 5:
         return lzma.decompress(data)
     else:
-        raise ValueError(f"Unsupported compression flag: {compression_flag}")
+        return data
 
 def parse_bbm(file_path):
     with open(file_path, "rb") as f:

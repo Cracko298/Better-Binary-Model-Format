@@ -13,6 +13,8 @@ def compressor(byteData:bytes, compression:int=0) -> bytes:
         return zlib.compress(byteData, 9)
     elif compression == 5:
         return lzma.compress(byteData)
+    else:
+        return byteData
 
 def parse_obj(file_path):
     vertices = []
