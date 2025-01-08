@@ -4,7 +4,7 @@
 ## Compiling Models:
 - You can compile your model into the format by using the following command:
 ```
-py main.py [inputObjPlyFile] [outputFile] [compressionMode]
+py main.py [inputObjPlyFile] [outputBbmFile] [compressionMode]
                                           Integer (Compression):
                                             0 = None
                                             1 = BZ2
