@@ -1,5 +1,5 @@
 # BBM
-- Better Binary Model Format is a Model format that's extremely lightweight, easy-to-use, and resource/storage conscientious.
+- Better Binary Model (BBM) is a 3D Geometry/Model Format for Embedded Systems and Microcontrollers with very low file-sizes.
 
 ## Compiling Models:
 - You can compile your model into the format by using the following command:
