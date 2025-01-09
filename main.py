@@ -1,4 +1,4 @@
-import sys, lzma, bz2, lz4, zstandard, zlib, struct, lz4.frame
+import sys, lzma, bz2, lz4, zstandard, zlib, struct, lz4.frame, os
 
 def compressor(byteData:bytes, compression:int=0) -> bytes:
     if compression == 0:
@@ -122,7 +122,63 @@ def parse_stl(file_path):
 
     return vertices, faces
 
-def convertToBBM(input_file:str, output_file:str=None, compression:int=0):
+def convertFolderToBBM(input_folder:str, output_file:str = None, compression:int = 0):
+    fileCounter, bCount = (0, 0)
+    print("\n")
+    if output_file is None:
+        output_file = f".\\{os.path.basename(input_folder)}"
+
+    for model in os.listdir(input_folder):
+        exten = model[model.rfind('.'):].lower()
+        if exten == '.obj' or exten == '.ply':
+            fileCounter += 1
+    
+    with open(output_file, "wb") as f:
+        for file in os.listdir(input_folder):
+            file_ext = file[file.rfind('.'):].lower()
+            if file_ext == ".obj":
+                vertices, faces = parse_obj(f"{input_folder}\\{file}")
+                format_tag = b"BBM\x01"
+            elif file_ext == ".ply":
+                vertices, faces = parse_ply(f"{input_folder}\\{file}")
+                format_tag = b"BBM\x02"
+            else:
+                continue
+            
+            bCount += 1
+            if output_file is None:
+                output_file = f".\\{os.path.basename(input_folder)}"
+
+            vertex_count = len(vertices)
+            face_count = len(faces)
+            vertex_data = compressor(b"".join([struct.pack("fff", *v) for v in vertices]), compression)
+            face_data = compressor(b"".join([struct.pack("III", *f) for f in faces]), compression)
+            vLen, fLen = len(vertex_data), len(face_data)
+            modelName = file.replace(file_ext, '').encode('utf-8').ljust(0x10, b'\x00')
+
+            header = struct.pack(
+                "4sIIHHQQ16s",
+                format_tag,
+                vertex_count,
+                face_count,
+                compression,
+                fileCounter,
+                vLen,
+                fLen,
+                modelName
+            )
+            f.write(header)
+            f.write(vertex_data)
+            f.write(face_data)
+
+            print(f"BBM Model #{bCount} ({file}), compiled into: {output_file}")
+    print("\n")
+    sys.exit(1)
+
+def convertFileToBBM(input_file:str, output_file:str=None, compression:int=0):
+    if os.path.isdir(input_file):
+        convertFolderToBBM(input_file, output_file, compression)
+
     file_ext = input_file[input_file.rfind('.'):].lower()
     if file_ext == ".obj":
         vertices, faces = parse_obj(input_file)
@@ -144,15 +200,26 @@ def convertToBBM(input_file:str, output_file:str=None, compression:int=0):
     face_count = len(faces)
     vertex_data = compressor(b"".join([struct.pack("fff", *v) for v in vertices]), compression)
     face_data = compressor(b"".join([struct.pack("III", *f) for f in faces]), compression)
+    modelName = input_file.replace(file_ext, '').encode('utf-8').ljust(0x10, b'\x00')
     vLen, fLen = len(vertex_data), len(face_data)
-    header = struct.pack("4sII", format_tag, vertex_count, face_count) + int.to_bytes(compression, 4, 'little') + int.to_bytes(vLen, 8, 'little') + int.to_bytes(fLen, 8, 'little')
+    header = struct.pack(
+        "4sIIHHQQ16s", 
+        format_tag, 
+        vertex_count, 
+        face_count, 
+        compression,
+        1,
+        vLen, 
+        fLen, 
+        modelName
+    )
     with open(output_file, "wb") as f:
         f.write(header)
         f.write(vertex_data)
         f.write(face_data)
 
 if __name__ == "__main__":
-    try:convertToBBM(str(sys.argv[1]), str(sys.argv[2]), int(sys.argv[3]))
+    try:convertFileToBBM(str(sys.argv[1]), str(sys.argv[2]), int(sys.argv[3]))
     except IndexError:
-        try:convertToBBM(str(sys.argv[1]), str(sys.argv[2]))
-        except IndexError: convertToBBM(str(sys.argv[1]))
+        try:convertFileToBBM(str(sys.argv[1]), str(sys.argv[2]))
+        except IndexError: convertFileToBBM(str(sys.argv[1]))
