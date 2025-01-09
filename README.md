@@ -1,7 +1,7 @@
 # BBM
 - Better Binary Model (BBM) is a 3D Model Format for E.S. and Microcontrollers with very small file-sizes.
 - It's also quite versitile, allowing for easy OBJ/PLY conversions, encryption, compression, and multiple models.
-- Usefull for Geometry as well in Game Development (especially custom engines) that's cruicial for your Game and you want no modifications).
+- Useful for Geometry as well in Game Development/Engines, and assets that are cruicial for your Game.
 
 ## Features:
 - Easy-To-Understand Header.
