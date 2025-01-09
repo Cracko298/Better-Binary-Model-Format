@@ -7,7 +7,7 @@
 - Easy-To-Understand Header.
 - Standard Compression Algorithms or None at all.
 - Multi-Model Support (yes it supports multiple models in the same file).
-- Insanely small file-sizes (`5-20%` of original file-sizes).
+- Insanely small file-sizes (upto `95%` file-sizes reduction).
 - No Quality Loss (yes, you heard it correctly).
 
 ## Roadmap:
