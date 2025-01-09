@@ -21,16 +21,16 @@ def decompressor(data:bytes, compression_flag:int=0) -> bytes:
 
 def parse_bbm(file_path):
     with open(file_path, "rb") as f:
-        header = f.read(0x20)
-        format_tag, vertex_count, face_count, compression_flag, vertexLen, faceLen = struct.unpack("4sIIIQQ", header)
+        header = f.read(0x30)
+        format_tag, vertex_count, face_count, compression_flag, numFiles, vertexLen, faceLen, modelName = struct.unpack("4sIIHHQQ16s", header)
         print(f"Format Tag: {format_tag}, Vertex Count: {vertex_count}, Face Count: {face_count}, Compression: {compression_flag}")
         print(vertexLen)
 
-        f.seek(0x20)
+        f.seek(0x30)
         compressed_vertex_data = f.read(vertexLen)
         vertex_data = decompressor(compressed_vertex_data, compression_flag)
         vertices = [struct.unpack("fff", vertex_data[i:i + 12]) for i in range(0, len(vertex_data), 12)]
-        f.seek(0x20+vertexLen)
+        f.seek(0x30+vertexLen)
         compressed_face_data = f.read(faceLen)
         face_data = decompressor(compressed_face_data, compression_flag)
         faces = [struct.unpack("III", face_data[i:i + 12]) for i in range(0, len(face_data), 12)]
