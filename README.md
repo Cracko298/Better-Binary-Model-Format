@@ -2,6 +2,7 @@
 - Better Binary Model (BBM) is a 3D Model/Geometry Format for E.S. & Microcontrollers with very small file-sizes.
 - It's also quite versitile, allowing for easy OBJ/PLY conversions, encryption, compression, and multiple models.
 - Useful for Geometry as well in Game Development/Engines, and assets that are cruicial for your Game.
+- No encryption information is stored in the Header.
 
 ## Features:
 - Easy-To-Understand Header.
@@ -12,7 +13,7 @@
 
 ## Roadmap:
 - Add Support for BBModel/JSON/BJSON Models.
-- Add AES/XOR/Blowfish/ChaCha20 Encryption Support per-model or per-file.
+- Add AES/XOR/Blowfish/ChaCha20 Encryption Support per-model (with the same key).
 - Export Model-Keys (basically position of model in file with name).
 
 ## Compiling Models:
