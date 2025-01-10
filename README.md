@@ -43,6 +43,26 @@ python .\generator.py .\models\groupOfModels\ .\myTankArmy.bbm 5 "true" xor "myA
 python .\generator.py .\myCoolFolder\withWierdStuff\ C:\Users\Public\Documents\veryCoolModelCompilation.bbm
 ```
 
+### Header Infomation:
+```
+00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | Decoded Text
+------------------------------------------------|-----------------
+42 42 4D 01 16 1C 00 00 0B 21 00 00 00 00 05 00 | BBM......!......
+08 51 01 00 00 00 00 00 84 8C 01 00 00 00 00 00 | .Q......„Œ......
+63 61 72 00 00 00 00 00 00 00 00 00 00 00 00 00 | car.............
+
+Bytes 00->02 = Format Tag
+Byte  03     = OBJ/PLY/STL File Used
+Bytes 04->07 = Vertex Count
+Bytes 08->0B = Face Count
+Bytes 0C->0D = Compression Mode
+Bytes 0E->0F = Number of Models
+Bytes 10->17 = Length of Vertex Data
+Bytes 18->1F = Length of Face Data
+Bytes 20->2F = NameTable
+```
+
+
 
 ## Rendering Model:
 - You can render your compiled model by using command:
