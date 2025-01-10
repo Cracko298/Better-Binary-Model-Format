@@ -26,10 +26,10 @@
                                                           │                    ├─ True      |
                                                           │                    └─ False     |
                                                           │                                 └─ Encryption (String):
-                                                          │                                    ├─ AES
-                                                          └─ Compression (Integer):            ├─ XOR
-                                                             ├─ 0 = None                       ├─ ChaCha
-                                                             ├─ 1 = BZ2                        └─ Blowfish
+                                                          │                                    ├─ AES      (AES256)
+                                                          └─ Compression (Integer):            ├─ XOR      (XoR Cipher)
+                                                             ├─ 0 = None                       ├─ ChaCha   (ChaCha20
+                                                             ├─ 1 = BZ2                        └─ Blowfish (Blowfish)
                                                              ├─ 2 = LZ4
                                                              ├─ 3 = ZStandard
                                                              ├─ 4 = ZLib
