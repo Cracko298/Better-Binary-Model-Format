@@ -19,7 +19,7 @@
 - You can compile your model into the format by using the following command:
 ```
     │------------------Required Field-------------------│ │-------------------------Optional Field-------------------------│
-    python generator.py [inputObjPlyFile] [outputBbmFile] [compressionMode] [DumpModelKeys] [encryptionMode] [encryptionKey]
+    python generator.py [inputObjPlyFile] [outputBbmFile] [compressionMode] [dumpModelKeys] [encryptionMode] [encryptionKey]
                                                           │                 │               |
                                                           │                 └─ Dump-Keys (Boolean):
                                                           │                    ├─ True      |
