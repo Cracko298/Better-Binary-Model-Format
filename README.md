@@ -18,14 +18,21 @@
 ## Compiling Models:
 - You can compile your model into the format by using the following command:
 ```
-py main.py [inputObjPlyFile] [outputBbmFile] [compressionMode] [BooleanDumpModelKeys] [encryptionMode] [encryptionKey]
-                                              Integer (Compression):
-                                                0 = None
-                                                1 = BZ2
-                                                2 = LZ4
-                                                3 = ZStandard
-                                                4 = ZLib
-                                                5 = LZMA
+    │------------------Required Field-------------------│ │-------------------------Optional Field-------------------------│
+    python generator.py [inputObjPlyFile] [outputBbmFile] [compressionMode] [DumpModelKeys] [encryptionMode] [encryptionKey]
+                                                          │                 │               |
+                                                          │                 └─ Dump-Keys (Boolean):
+                                                          │                    ├─ True      |
+                                                          │                    └─ False     |
+                                                          │                                 └─ Encryption (String):
+                                                          │                                    ├─ AES
+                                                          └─ Compression (Integer):            ├─ XOR
+                                                             ├─ 0 = None                       ├─ ChaCha
+                                                             ├─ 1 = BZ2                        └─ Blowfish
+                                                             ├─ 2 = LZ4
+                                                             ├─ 3 = ZStandard
+                                                             ├─ 4 = ZLib
+                                                             └─ 5 = LZMA
 ```
 
 ## Rendering Model:
