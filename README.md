@@ -35,6 +35,14 @@
                                                              ├─ 4 = ZLib
                                                              └─ 5 = LZMA
 ```
+### Example Command(s):
+```
+python .\generator.py .\model\myCoolTankModel.obj .\tank.bbm 5 "true" aes "myVeryCoolTankEncryptionKey"
+python .\generator.py .\model\myCoolTankModel.obj
+python .\generator.py .\models\groupOfModels\ .\myTankArmy.bbm 5 "true" xor "myArmyOfTanksWillBeTheCoolestThingSinceToothpaste"
+python .\generator.py .\myCoolFolder\withWierdStuff\ C:\Users\Public\Documents\veryCoolModelCompilation.bbm
+```
+
 
 ## Rendering Model:
 - You can render your compiled model by using command:
