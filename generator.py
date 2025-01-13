@@ -56,7 +56,10 @@ def encryptor(byteData:bytes, encryptionKey:str=None, encryptionMode:str=None) -
         key_length = len(key_bytes)
         encrypted_data = bytes([byteData[i] ^ key_bytes[i % key_length] for i in range(len(byteData))])
 
-    return encrypted_data
+    if encryptionType == "chacha":
+        return nonce + encrypted_data
+    else:
+        return encrypted_data
 
 def compressor(byteData:bytes, compression:int=0) -> bytes:
     if compression == 0:
