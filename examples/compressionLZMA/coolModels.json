@@ -1,0 +1,57 @@
+[
+    {
+        "Model-ID": "car",
+        "Original-Type": ".obj",
+        "Vertext Count": 7190,
+        "Face Count": 8459,
+        "Compression": 5,
+        "Number of Models": 5,
+        "Model Number": 1,
+        "Vertex Length": 21528,
+        "Face Length": 25568
+    },
+    {
+        "Model-ID": "cats",
+        "Original-Type": ".obj",
+        "Vertext Count": 10116,
+        "Face Count": 10086,
+        "Compression": 5,
+        "Number of Models": 5,
+        "Model Number": 2,
+        "Vertex Length": 70712,
+        "Face Length": 29040
+    },
+    {
+        "Model-ID": "gun",
+        "Original-Type": ".ply",
+        "Vertext Count": 6982,
+        "Face Count": 1739,
+        "Compression": 5,
+        "Number of Models": 5,
+        "Model Number": 3,
+        "Vertex Length": 11944,
+        "Face Length": 2528
+    },
+    {
+        "Model-ID": "tank",
+        "Original-Type": ".obj",
+        "Vertext Count": 3433,
+        "Face Count": 2946,
+        "Compression": 5,
+        "Number of Models": 5,
+        "Model Number": 4,
+        "Vertex Length": 11076,
+        "Face Length": 6888
+    },
+    {
+        "Model-ID": "walker",
+        "Original-Type": ".obj",
+        "Vertext Count": 18130,
+        "Face Count": 35228,
+        "Compression": 5,
+        "Number of Models": 5,
+        "Model Number": 5,
+        "Vertex Length": 172920,
+        "Face Length": 93072
+    }
+]
