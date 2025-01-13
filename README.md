@@ -66,5 +66,5 @@ Bytes 20->2F = NameTable
 ## Rendering Model:
 - You can render your compiled model by using command:
 ```
-py renderer.py [inputBbmFile]
+py renderer.py [inputBbmFile] [modelNumber] [modelEncryptionMode] [encryptionKey]
 ```
