@@ -13,6 +13,8 @@
 - Dump Information on Models at Generation to be a Key pratically.
 - Ability to encrypt your Models (not headers).
 
+### Encryption is Broken Currently...
+
 ## Roadmap:
 - Add Support for BBModel/JSON/BJSON Models.
 
