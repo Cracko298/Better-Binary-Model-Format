@@ -1,26 +1,14 @@
-import sys, lzma, bz2, lz4, zstandard, zlib, struct, lz4.frame, os, json
+import sys, lzma, bz2, lz4.block, zstandard, zlib, struct, os, json
 from Crypto.Cipher import AES, Blowfish, ChaCha20
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
+
 encryptionList = ['aes', 'xor', 'chacha', 'blowfish']
 
 def helpMessage():
     print(f"""
     │------------------Required Field-------------------│ │-------------------------Optional Field-------------------------│
     python {os.path.basename(__file__)} [inputObjPlyFile] [outputBbmFile] [compressionMode] [dumpModelKeys] [encryptionMode] [encryptionKey]
-                                                          │                 │               |
-                                                          │                 └─ Dump-Keys (Boolean):
-                                                          │                    ├─ True      |
-                                                          │                    └─ False     |
-                                                          │                                 └─ Encryption (String):
-                                                          │                                    ├─ AES
-                                                          └─ Compression (Integer):            ├─ XOR
-                                                             ├─ 0 = None                       ├─ ChaCha
-                                                             ├─ 1 = BZ2                        └─ Blowfish
-                                                             ├─ 2 = LZ4
-                                                             ├─ 3 = ZStandard
-                                                             ├─ 4 = ZLib
-                                                             └─ 5 = LZMA
     """)
     os.system('pause')
     sys.exit(1)
@@ -77,6 +65,46 @@ def compressor(byteData:bytes, compression:int=0) -> bytes:
     else:
         return byteData
 
+def optimize_mesh(vertices, faces):
+    """Removes duplicate vertices and faces."""
+    unique_coords = {} 
+    deduped_vertices = []
+    for v in vertices:
+        if v not in unique_coords:
+            unique_coords[v] = len(deduped_vertices)
+            deduped_vertices.append(v)
+    
+    old_idx_to_new_idx = [unique_coords[v] for v in vertices]
+    new_faces_set = set()
+    final_faces = []
+    
+    for face in faces:
+        new_face = tuple(old_idx_to_new_idx[i] for i in face)
+        if len(set(new_face)) < 3:
+            continue
+            
+        if new_face not in new_faces_set:
+            new_faces_set.add(new_face)
+            final_faces.append(new_face)
+            
+    print(f"Optimization: Reduced {len(vertices)} verts to {len(deduped_vertices)}. Reduced {len(faces)} faces to {len(final_faces)}.")
+    return deduped_vertices, final_faces
+
+def pack_vertices(vertices):
+    try:
+        packed_data = b"".join([struct.pack("eee", *v) for v in vertices])
+        return b'\x01' + packed_data
+    except Exception as e:
+        print(f"Half-float packing failed (values too large?), reverting to float32: {e}")
+        packed_data = b"".join([struct.pack("fff", *v) for v in vertices])
+        return b'\x00' + packed_data
+
+def pack_faces(faces, vertex_count):
+    if vertex_count < 65535:
+        return b'\x01' + b"".join([struct.pack("HHH", *f) for f in faces])
+    else:
+        return b'\x00' + b"".join([struct.pack("III", *f) for f in faces])
+
 def parse_obj(file_path):
     vertices = []
     faces = []
@@ -88,7 +116,11 @@ def parse_obj(file_path):
             if parts[0] == "v":
                 vertices.append(tuple(map(float, parts[1:4])))
             elif parts[0] == "f":
-                faces.append(tuple(int(p.split('/')[0]) - 1 for p in parts[1:4]))
+                face_idxs = []
+                for p in parts[1:4]:
+                    idx = int(p.split('/')[0])
+                    face_idxs.append(idx - 1 if idx > 0 else len(vertices) + idx)
+                faces.append(tuple(face_idxs))
     return vertices, faces
 
 def parse_ply(file_path):
@@ -133,55 +165,32 @@ def parse_binary_stl(file_path):
     faces = []
     with open(file_path, "rb") as f:
         f.seek(80)
-        triangle_count = struct.unpack("<I", f.read(4))[0]
+        triangle_count_bytes = f.read(4)
+        if not triangle_count_bytes: return [], []
+        triangle_count = struct.unpack("<I", triangle_count_bytes)[0]
         for _ in range(triangle_count):
             f.read(12)
-            vertices.append(tuple(struct.unpack("<fff", f.read(12))))
-            vertices.append(tuple(struct.unpack("<fff", f.read(12))))
-            vertices.append(tuple(struct.unpack("<fff", f.read(12))))
-            faces.append((len(vertices) - 3, len(vertices) - 2, len(vertices) - 1))
-            f.read(2)
+            v1 = struct.unpack("<fff", f.read(12))
+            v2 = struct.unpack("<fff", f.read(12))
+            v3 = struct.unpack("<fff", f.read(12))
+            base_idx = len(vertices)
+            vertices.extend([v1, v2, v3])
+            faces.append((base_idx, base_idx+1, base_idx+2))
+            f.read(2) # Attribute byte count
     return vertices, faces
 
 def parse_stl(file_path):
     if is_binary_stl(file_path):
         return parse_binary_stl(file_path)
+    
     vertices = []
     faces = []
     vertex_map = {}
     
     with open(file_path, "rb") as file:
         header = file.read(80)
-        if len(header) != 80:
-            raise ValueError("STL file header is not 80 bytes.")
-
-        num_faces = struct.unpack("I", file.read(4))[0]
-        
-        print(f"Number of faces: {num_faces}")
-
-        for _ in range(num_faces):
-            face_data = file.read(50)
-            if len(face_data) != 50:
-                continue
-
-            normal = struct.unpack("3f", face_data[:12])
-            
-            face_vertices = struct.unpack("3f", face_data[12:24])
-            face_vertices += struct.unpack("3f", face_data[24:36])
-            face_vertices += struct.unpack("3f", face_data[36:48])
-            file.read(2)
-            for vertex in [face_vertices[:3], face_vertices[3:6], face_vertices[6:]]:
-                if vertex not in vertex_map:
-                    vertex_map[vertex] = len(vertices)
-                    vertices.append(vertex)
-
-            faces.append((
-                vertex_map[face_vertices[:3]], 
-                vertex_map[face_vertices[3:6]], 
-                vertex_map[face_vertices[6:]]
-            ))
-
-    return vertices, faces
+        pass 
+    return parse_binary_stl(file_path)
 
 def convertFolderToBBM(input_folder:str, output_file:str=None, compression:int=0, dumpKeys:str="False", encryptionKey:str=None, encryptionMode:str=None):
     jsonEntries = []
@@ -192,20 +201,27 @@ def convertFolderToBBM(input_folder:str, output_file:str=None, compression:int=0
 
     for model in os.listdir(input_folder):
         exten = model[model.rfind('.'):].lower()
-        if exten == '.obj' or exten == '.ply':
+        if exten in ['.obj', '.ply', '.stl']:
             fileCounter += 1
+            
     jsonFile = output_file.replace(output_file[output_file.rfind('.'):].lower(), ".json")
     
     with open(output_file, "wb") as f:
         with open(jsonFile, 'w') as dumpJSON:
             for file in os.listdir(input_folder):
                 file_ext = file[file.rfind('.'):].lower()
+                vertices, faces = [], []
+                format_tag = b"BBM\x00"
+
                 if file_ext == ".obj":
                     vertices, faces = parse_obj(f"{input_folder}\\{file}")
                     format_tag = b"BBM\x01"
                 elif file_ext == ".ply":
                     vertices, faces = parse_ply(f"{input_folder}\\{file}")
                     format_tag = b"BBM\x02"
+                elif file_ext == ".stl":
+                    vertices, faces = parse_stl(f"{input_folder}\\{file}")
+                    format_tag = b"BBM\x03"
                 else:
                     continue
             
@@ -213,10 +229,16 @@ def convertFolderToBBM(input_folder:str, output_file:str=None, compression:int=0
                 if output_file is None:
                     output_file = f".\\{os.path.basename(input_folder)}"
 
+                vertices, faces = optimize_mesh(vertices, faces)
                 vertex_count = len(vertices)
                 face_count = len(faces)
-                vertex_data = encryptor(compressor(b"".join([struct.pack("fff", *v) for v in vertices]), compression), encryptionKey, encryptionMode)
-                face_data = encryptor(compressor(b"".join([struct.pack("III", *f) for f in faces]), compression), encryptionKey, encryptionMode)
+
+                packed_verts = pack_vertices(vertices)
+                packed_faces = pack_faces(faces, vertex_count)
+
+                vertex_data = encryptor(compressor(packed_verts, compression), encryptionKey, encryptionMode)
+                face_data = encryptor(compressor(packed_faces, compression), encryptionKey, encryptionMode)
+                
                 vLen, fLen = len(vertex_data), len(face_data)
                 modelName = file.replace(file_ext, '').encode('utf-8').ljust(0x10, b'\x00')
 
@@ -261,6 +283,9 @@ def convertFileToBBM(input_file:str, output_file:str=None, compression:int=0, du
         convertFolderToBBM(input_file, output_file, compression, dumpKeys, encryptionKey, encryptionMode)
 
     file_ext = input_file[input_file.rfind('.'):].lower()
+    vertices, faces = [], []
+    format_tag = b"BBM\x00"
+
     if file_ext == ".obj":
         vertices, faces = parse_obj(input_file)
         format_tag = b"BBM\x01"
@@ -277,12 +302,16 @@ def convertFileToBBM(input_file:str, output_file:str=None, compression:int=0, du
     if output_file is None:
         output_file = f".\\{input_file.replace(file_ext,'.bbm')}"
 
+    vertices, faces = optimize_mesh(vertices, faces)
     vertex_count = len(vertices)
     face_count = len(faces)
-    vertex_data = encryptor(compressor(b"".join([struct.pack("fff", *v) for v in vertices]), compression), encryptionKey, encryptionMode)
-    face_data = encryptor(compressor(b"".join([struct.pack("III", *f) for f in faces]), compression), encryptionKey, encryptionMode)
+    packed_verts = pack_vertices(vertices)
+    packed_faces = pack_faces(faces, vertex_count)
+    vertex_data = encryptor(compressor(packed_verts, compression), encryptionKey, encryptionMode)
+    face_data = encryptor(compressor(packed_faces, compression), encryptionKey, encryptionMode)
     modelName = input_file.replace(file_ext, '').encode('utf-8').ljust(0x10, b'\x00')
     vLen, fLen = len(vertex_data), len(face_data)
+    
     header = struct.pack(
         "4sIIHHQQ16s", 
         format_tag, 
@@ -319,6 +348,8 @@ def convertFileToBBM(input_file:str, output_file:str=None, compression:int=0, du
 
 if __name__ == "__main__":
     lnth = len(sys.argv)
+    if lnth < 2:
+        helpMessage()
     inputObjPlyFile = str(sys.argv[1])
     outputBbmFile = str(sys.argv[2]) if len(sys.argv) > 2 else None
     compressionMode = int(sys.argv[3]) if len(sys.argv) > 3 else 0
