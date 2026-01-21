@@ -6,7 +6,7 @@ from Crypto.Util.Padding import pad, unpad
 import matplotlib.pyplot as plt
 
 encryptionList = ['aes', 'xor', 'chacha', 'blowfish']
-HEADER_SIZE = 0x30 # (decimal 48) bytes
+HEADER_SIZE = 0x30
 multipleModels = []
 modelNames = []
 
@@ -20,7 +20,6 @@ def decryptor(byteData:bytes, encryptionKey:str=None, encryptionMode:str=None) -
 
     key_bytes = encryptionKey.encode()
     decrypted_data = None
-    nonce = None
     if encryptionType == "aes":
         key_bytes = key_bytes.ljust(32)[:32]
         cipher = AES.new(key_bytes, AES.MODE_CBC)
@@ -63,22 +62,37 @@ def readHeader(byteData: bytes):
     formatVersion = int.from_bytes(format_tag[0x02:0x03], 'little')
     return modelName, vertex_count, face_count, compression_flag, numFiles, vertex_len, face_len, formatVersion
 
+def unpack_vertices(data: bytes):
+    """Detects packing flag and unpacks vertices accordingly."""
+    if not data: return []
+    flag = data[0]
+    payload = data[1:]
+    if flag == 1:
+        return [struct.unpack("eee", payload[i:i + 6]) for i in range(0, len(payload), 6)]
+    else:
+        return [struct.unpack("fff", payload[i:i + 12]) for i in range(0, len(payload), 12)]
+
+def unpack_faces(data: bytes):
+    """Detects packing flag and unpacks faces accordingly."""
+    if not data: return []
+    flag = data[0]
+    payload = data[1:]
+    if flag == 1:
+        return [struct.unpack("HHH", payload[i:i + 6]) for i in range(0, len(payload), 6)]
+    else:
+        return [struct.unpack("III", payload[i:i + 12]) for i in range(0, len(payload), 12)]
+
 def parseBbm(file_path:str, fileToView:int=0, encryptionKey:str=None, encryptionMode:str=None) -> bytes:
     entryCount = 0
     baseNumber = 0
     with open(file_path, 'rb') as f:
         modelName, vertexCount, faceCount, compression, numFiles, vertexLen, faceLen, formatVersion = readHeader(f.read(HEADER_SIZE))
         f.seek(0x00)
+        
+        target_model_data = None
         if numFiles == 1:
-            f.seek(HEADER_SIZE)
-            decryptedVertextData = decryptor(f.read(vertexLen), encryptionKey, encryptionMode); decompressedVertexData = decompressor(decryptedVertextData, compression)
-            vertexData = [struct.unpack("fff", decompressedVertexData[i:i + 12]) for i in range(0, len(decompressedVertexData), 12)]
-            f.seek(HEADER_SIZE+vertexLen)
-            decryptedFaceData = decryptor(f.read(faceLen), encryptionKey, encryptionMode); decompressedFaceData = decompressor(decryptedFaceData, compression)
-            faceData = [struct.unpack("III", decompressedFaceData[i:i + 12]) for i in range(0, len(decompressedFaceData), 12)]
-            print(f"Model ID: {modelName}\nFormat Tag: {formatVersion}\nVertex Count: {vertexCount}\nFace Count: {faceCount}\nCompression: {compression}")
-            print(f"Parsed {len(vertexData)} vertices and {len(faceData)} faces.")
-            return vertexData, faceData
+            f.seek(0)
+            target_model_data = f 
         else:
             multipleModels.append(io.BytesIO(f.read(HEADER_SIZE+vertexLen+faceLen)))
             entryCount += 1
@@ -92,18 +106,21 @@ def parseBbm(file_path:str, fileToView:int=0, encryptionKey:str=None, encryption
                 modelNames.append(modelName)
                 baseNumber += (HEADER_SIZE+vertexLen+faceLen)
                 entryCount += 1
-            selectedModel =  multipleModels[fileToView] if entryCount >= fileToView else multipleModels[0]
-            with selectedModel as f:
-                modelName, vertexCount, faceCount, compression, numFiles, vertexLen, faceLen, formatVersion = readHeader(f.read(HEADER_SIZE))
-                f.seek(HEADER_SIZE)
-                decryptedVertexData = decryptor(f.read(vertexLen), encryptionKey, encryptionMode); decompressedVertexData = decompressor(decryptedVertexData, compression)
-                vertexData = [struct.unpack("fff", decompressedVertexData[i:i + 12]) for i in range(0, len(decompressedVertexData), 12)]
-                f.seek(HEADER_SIZE+vertexLen)
-                decryptedFaceData = decryptor(f.read(faceLen), encryptionKey, encryptionMode); decompressedFaceData = decompressor(decryptedFaceData, compression)
-                faceData = [struct.unpack("III", decompressedFaceData[i:i + 12]) for i in range(0, len(decompressedFaceData), 12)]
-                print(f"Model ID: {modelName}\nFormat Tag: {formatVersion}\nVertex Count: {vertexCount}\nFace Count: {faceCount}\nCompression: {compression}")
-                print(f"Parsed {len(vertexData)} vertices and {len(faceData)} faces.")
-                return vertexData, faceData
+            target_model_data = multipleModels[fileToView] if entryCount >= fileToView else multipleModels[0]
+
+        with target_model_data as stream:
+            if isinstance(stream, io.BytesIO): stream.seek(0)
+            modelName, vertexCount, faceCount, compression, numFiles, vertexLen, faceLen, formatVersion = readHeader(stream.read(HEADER_SIZE))
+            decryptedVertexData = decryptor(stream.read(vertexLen), encryptionKey, encryptionMode)
+            decompressedVertexData = decompressor(decryptedVertexData, compression)
+            vertexData = unpack_vertices(decompressedVertexData)
+            decryptedFaceData = decryptor(stream.read(faceLen), encryptionKey, encryptionMode)
+            decompressedFaceData = decompressor(decryptedFaceData, compression)
+            faceData = unpack_faces(decompressedFaceData)
+            
+            print(f"Model ID: {modelName}\nFormat Tag: {formatVersion}\nVertex Count: {vertexCount}\nFace Count: {faceCount}\nCompression: {compression}")
+            print(f"Parsed {len(vertexData)} vertices and {len(faceData)} faces.")
+            return vertexData, faceData
             
 def renderBbmModel(file_path, fileToView:int=0, encryptionKey:str=None, encryptionMode:str=None):
     vertices, faces = parseBbm(file_path, fileToView, encryptionKey, encryptionMode)
