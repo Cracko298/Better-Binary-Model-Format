@@ -8,7 +8,7 @@
 - Easy-To-Understand Header.
 - Standard Compression Algorithms or None at all.
 - Multi-Model Support (yes it supports multiple models in the same file).
-- Insanely small file-sizes (upto `95%` file-sizes reduction).
+- Insanely small file-sizes (upto `98%` file-sizes reduction).
 - No Quality Loss (yes, you heard it correctly).
 - Dump Information on Models at Generation to be a Key pratically.
 - Ability to encrypt your Models (not headers).
