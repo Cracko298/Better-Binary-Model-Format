@@ -1,73 +1,124 @@
 # BBM
-- Better Binary Model (BBM) is a 3D Model/Geometry Format for E.S. & Microcontrollers with very small file-sizes.
-- It's also quite versitile, allowing for easy OBJ/PLY conversions, encryption, compression, and multiple models.
-- Useful for Geometry as well in Game Development/Engines, and assets that are cruicial for your Game.
-- No encryption information is stored in the Header (can affect sizing if enabled).
+- Better Binary Model (BBM) is a 3D Model/Geometry Format for E.S. & Microcontrollers with extremely small file-sizes.
+- It is highly versatile, supporting OBJ/PLY/STL conversion, encryption, compression, and multiple models.
+- Designed for efficient geometry storage in game engines and real-time applications.
+- No encryption information is stored in the Header (keeps header minimal).
+
+---
 
 ## Features:
 - Easy-To-Understand Header.
 - Standard Compression Algorithms or None at all.
-- Multi-Model Support (yes it supports multiple models in the same file).
-- Insanely small file-sizes (upto `98%` file-sizes reduction).
-- No Quality Loss (yes, you heard it correctly).
-- Dump Information on Models at Generation to be a Key pratically.
+- **Auto Compression Mode (mode 6, selects smallest result automatically).**
+- Multi-Model Support (multiple models per file).
+- Insanely small file-sizes (up to `98%+` reduction).
+- **Lossless Mode (exact geometry, no precision loss).**
+- **Quantized Mode (ultra-small with near-identical visual quality).**
+- **Bit-Packed Geometry (exact-bit index + coordinate packing).**
+- **Separate Vertex Streams (X/Y/Z for better compression).**
+- Dump Information on Models at Generation (acts like a key).
 - Ability to encrypt your Models (not headers).
 
-### Encryption is Broken Currently...
+---
 
-## Roadmap:
-- Add Support for BBModel/JSON/BJSON Models.
+## Geometry Modes:
+- `lossless`
+  - Exact vertex data
+  - Stream-separated (X/Y/Z)
+  - Optimized for compression
+- `quantized [bits]`
+  - Fixed-bit coordinate storage (e.g. 12-bit, 14-bit)
+  - Much smaller, slight precision tradeoff
+
+---
+
+## Compression Modes:
+```
+0 = None
+1 = BZ2
+2 = LZ4 (optional)
+3 = ZStandard (optional)
+4 = ZLib
+5 = LZMA
+6 = Auto (selects smallest result)
+```
+
+---
 
 ## Compiling Models:
-- You can compile your model into the format by using the following command:
 ```
-    │------------------Required Field-------------------│ │-------------------------Optional Field-------------------------│
-    python generator.py [inputObjPlyFile] [outputBbmFile] [compressionMode] [dumpModelKeys] [encryptionMode] [encryptionKey]
-                                                          │                 │               |
-                                                          │                 └─ Dump-Keys (Boolean):
-                                                          │                    ├─ True      |
-                                                          │                    └─ False     |
-                                                          │                                 └─ Encryption (String):
-                                                          └─ Compression (Integer):            ├─ AES      (AES256)
-                                                             ├─ 0 = None                       ├─ XOR      (XoR Cipher)
-                                                             ├─ 1 = BZ2                        ├─ ChaCha   (ChaCha20
-                                                             ├─ 2 = LZ4                        └─ Blowfish (Blowfish)
-                                                             ├─ 3 = ZStandard
-                                                             ├─ 4 = ZLib
-                                                             └─ 5 = LZMA
+│------------------Required Field-------------------│ │------------------------------Optional Field------------------------------│
+python generator.py [input] [output] [compression] [dumpKeys] [encryptionMode] [encryptionKey] [geometryMode] [quantBits]
 ```
+
+---
+
 ### Example Command(s):
 ```
-python .\generator.py .\model\myCoolTankModel.obj .\tank.bbm 5 "true" aes "myVeryCoolTankEncryptionKey"
-python .\generator.py .\model\myCoolTankModel.obj
-python .\generator.py .\models\groupOfModels\ .\myTankArmy.bbm 5 "true" xor "myArmyOfTanksWillBeTheCoolestThingSinceToothpaste"
-python .\generator.py .\myCoolFolder\withWierdStuff\ C:\Users\Public\Documents\veryCoolModelCompilation.bbm
+# Lossless (recommended)
+python generator.py model.obj model.bbm 6 false None None lossless
+
+# Quantized (smaller)
+python generator.py model.obj model_q.bbm 6 false None None quantized 12
+
+# Encrypted
+python generator.py model.obj secure.bbm 6 true aes "MyKey123" lossless
+
+# Multi-model folder
+python generator.py models/ army.bbm 6 true xor "TankArmyKey" lossless
 ```
 
-### Header Infomation:
+---
+
+## Header Information:
 ```
-00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | Decoded Text
+00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | Decoded Text 
 ------------------------------------------------|-----------------
-42 42 4D 01 16 1C 00 00 0B 21 00 00 00 00 05 00 | BBM......!......
-08 51 01 00 00 00 00 00 84 8C 01 00 00 00 00 00 | .Q......„Œ......
-63 61 72 00 00 00 00 00 00 00 00 00 00 00 00 00 | car.............
+42 42 4D 01 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? | BBM.............
+?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? | ................ 
+6D 6F 64 65 6C 00 00 00 00 00 00 00 00 00 00 00 | model...........
+```
 
-Bytes 00->02 = Format Tag
-Byte  03     = OBJ/PLY/STL File Used
+
+```
+Bytes 00->02 = Format Tag ("BBM")
+Byte  03     = Format Version / Source Type
 Bytes 04->07 = Vertex Count
 Bytes 08->0B = Face Count
 Bytes 0C->0D = Compression Mode
 Bytes 0E->0F = Number of Models
-Bytes 10->17 = Length of Vertex Data
-Bytes 18->1F = Length of Face Data
-Bytes 20->2F = NameTable
+Bytes 10->17 = Vertex Data Length
+Bytes 18->1F = Face Data Length
+Bytes 20->2F = Model Name
 ```
 
+### Notes:
+- Vertex/Face data may be:
+  - Delta encoded
+  - Bit-packed
+  - Quantized (if enabled)
+- Header is NOT compressed or encrypted
 
+---
 
 ## Rendering Model:
-- You can render your compiled model by using command:
 ```
-    │---------------Required Field----------------│ │--------Optional Field--------│
-    python renderer.py [inputBbmFile] [modelNumber] [encryptionMode] [encryptionKey]
+│---------------Required Field----------------│ │--------Optional Field--------│
+python renderer.py [inputBbmFile] [modelNumber] [encryptionMode] [encryptionKey]
 ```
+
+---
+
+## Important Notes:
+- Mode `6` will automatically choose the smallest compression algorithm.
+- Lossless mode may compress better than quantized due to higher pattern repetition.
+- Quantized mode produces the smallest raw data, but may compress less efficiently.
+- LZ4 and ZStandard are optional dependencies.
+
+---
+
+## Roadmap:
+- Support for BBModel / JSON / BJSON
+- Normal / UV compression
+- Animation / skeletal support
+- Advanced topology encoding (triangle strips / edge compression)
